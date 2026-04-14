@@ -16,7 +16,7 @@ class Brand extends Model
         'slug',
         'photo'
     ];
-    public function SetNameAttribute($value)
+    public function setNameAttribute($value)
     {
         $this->attributes['name'] = $value;
         $this->attributes['slug'] = Str::slug($value);
