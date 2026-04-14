@@ -3,8 +3,55 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Cosmetic extends Model
 {
-    //
+     use SoftDeletes;
+     
+     protected $fillable = [
+        'name',
+        'slug',
+        'about',
+        'thumbnail',
+        'is_popular',
+        'price',
+        'stock',
+        'category_id',
+        'brand_id'
+     ];
+
+     public function SetNameAttrubute($value){
+
+        $this->attributes['name'] = $value;
+        $this->attributes['slug'] = Str::slug($value);
+     }
+
+     public function category (): BelongsTo
+     {
+        return $this->belongsTo(Category::class, 'category_id');
+     }
+
+     public function brand (): BelongsTo
+     {
+        return $this->belongsTo(Brand::class, 'brand_id');
+     }
+
+     public function testimonials (): HasMany
+     {
+        return $this->hasMany(CosmeticTestimonial::class);
+     }
+
+     public function benefits (): HasMany
+     {
+        return $this->hasMany(CosmeticBenefit::class);
+     }
+
+     public function photos (): HasMany
+     {
+        return $this->hasMany(CosmeticPhoto::class);
+     }
 }
