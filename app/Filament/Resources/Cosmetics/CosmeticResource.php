@@ -6,6 +6,7 @@ use App\Filament\Resources\Cosmetics\Pages\CreateCosmetic;
 use App\Filament\Resources\Cosmetics\Pages\EditCosmetic;
 use App\Filament\Resources\Cosmetics\Pages\ListCosmetics;
 use App\Filament\Resources\Cosmetics\Pages\ViewCosmetic;
+use App\Filament\Resources\Cosmetics\RelationManagers\TestimonialsRelationManager;
 use App\Filament\Resources\Cosmetics\Schemas\CosmeticForm;
 use App\Filament\Resources\Cosmetics\Schemas\CosmeticInfolist;
 use App\Filament\Resources\Cosmetics\Tables\CosmeticsTable;
@@ -42,7 +43,7 @@ class CosmeticResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            TestimonialsRelationManager::class,
         ];
     }
 
