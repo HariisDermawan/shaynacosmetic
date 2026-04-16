@@ -22,7 +22,6 @@ return new class extends Migration
             $table->string('city');
             $table->boolean('is_paid');
             $table->text('address');
-            $table->unsignedBigInteger('quantity');
             $table->unsignedBigInteger('total_amount');
             $table->unsignedBigInteger('sub_total_amount');
             $table->unsignedBigInteger('total_tax_amount');

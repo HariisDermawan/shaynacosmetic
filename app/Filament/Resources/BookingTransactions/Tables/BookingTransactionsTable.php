@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\BookingTransactions\Tables;
 
+use App\Models\BookingTransaction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Actions\Action; // ✅ FIX DI SINI
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
@@ -19,47 +22,17 @@ class BookingTransactionsTable
     {
         return $table
             ->columns([
-                TextColumn::make('booking_trx_id')
-                    ->searchable(),
-                TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('email')
-                    ->label('Email address')
-                    ->searchable(),
-                TextColumn::make('phone')
-                    ->searchable(),
-                TextColumn::make('proof')
-                    ->searchable(),
-                TextColumn::make('post_code')
-                    ->searchable(),
-                TextColumn::make('city')
-                    ->searchable(),
+                TextColumn::make('name')->searchable(),
+                TextColumn::make('booking_trx_id')->searchable(),
+                TextColumn::make('created_at'),
+
                 IconColumn::make('is_paid')
-                    ->boolean(),
-                TextColumn::make('quantity')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('total_amount')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('sub_total_amount')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('total_tax_amount')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('deleted_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->label('Terverifikasi')
+                    ->boolean()
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle'),
             ])
             ->filters([
                 TrashedFilter::make(),
@@ -67,6 +40,22 @@ class BookingTransactionsTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+
+                Action::make('approve')
+                    ->label('Approve')
+                    ->action(function (BookingTransaction $record) {
+                        $record->is_paid = true;
+                        $record->save();
+
+                        Notification::make()
+                            ->title('Order Approved')
+                            ->success()
+                            ->body('The order has been successfully approved.')
+                            ->send();
+                    })
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn (BookingTransaction $record) => !$record->is_paid),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -22,7 +22,9 @@ class BookingTransactionResource extends Resource
 {
     protected static ?string $model = BookingTransaction::class;
 
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
 
     public static function form(Schema $schema): Schema
     {

@@ -8,4 +8,5 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateBookingTransaction extends CreateRecord
 {
     protected static string $resource = BookingTransactionResource::class;
+    
 }

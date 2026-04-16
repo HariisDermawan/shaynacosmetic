@@ -4,15 +4,17 @@ namespace App\Filament\Resources\BookingTransactions\Schemas;
 
 use App\Models\Cosmetic;
 use Filament\Forms\Components\FileUpload;
-use Filament\Schemas\Components\Wizard;
-use Filament\Schemas\Components\Wizard\Step;
-use Filament\Schemas\Schema;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Wizard\Step;
+use Filament\Schemas\Schema;
 
 class BookingTransactionForm
 {
@@ -29,6 +31,10 @@ class BookingTransactionForm
 
                             Repeater::make('transactionDetails')
                                 ->relationship('transactionDetails')
+                                ->live()
+                                ->afterStateUpdated(function (Get $get, Set $set) {
+                                    self::updateTotals($get, $set);
+                                })
                                 ->schema([
                                     Grid::make(2)
                                         ->schema([
@@ -42,7 +48,7 @@ class BookingTransactionForm
                                                 ->live()
                                                 ->afterStateUpdated(function ($state, callable $set) {
                                                     $cosmetic = Cosmetic::find($state);
-                                                    $set('price', $cosmetic ? $cosmetic->price : 0);
+                                                    $set('price', $cosmetic?->price ?? 0);
                                                 }),
 
                                             TextInput::make('price')
@@ -54,111 +60,74 @@ class BookingTransactionForm
                                             TextInput::make('quantity')
                                                 ->integer()
                                                 ->default(1)
-                                                ->required(),
+                                                ->required()
+                                                ->live(debounce: 300),
 
                                         ])
-
                                 ])
                                 ->minItems(1)
-                                ->columnSpan('full')
+                                ->columnSpanFull()
                                 ->label('Choose Products'),
+
                             Grid::make(4)
                                 ->schema([
-                                    TextInput::make('quantity')
+
+                                    TextInput::make('total_quantity')
                                         ->integer()
                                         ->label('Total Quantity')
-                                        ->readOnly()
-                                        ->default(1)
-                                        ->required(),
+                                        ->readOnly(),
 
                                     TextInput::make('sub_total_amount')
                                         ->numeric()
-                                        ->readOnly()
-                                        ->label('Sub Total Amount'),
+                                        ->readOnly(),
 
                                     TextInput::make('total_amount')
                                         ->numeric()
-                                        ->readOnly()
-                                        ->label('Total Amount'),
-
+                                        ->readOnly(),
                                     TextInput::make('total_tax_amount')
                                         ->numeric()
-                                        ->readOnly()
-                                        ->label('Total Tax (11%) ')
+                                        ->label('Total Tax (11%)')
+                                        ->readOnly(),
+
+
+
                                 ])
 
                         ]),
 
-
-                    Wizard\Step::make('Customer Information')
-                        ->completedIcon('heroicon-m-hand-thumb-up')
-                        ->description('For our marketing')
+                    Step::make('Customer Information')
                         ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    TextInput::make('name')
-                                        ->required()
-                                        ->maxLength(255),
-
-                                    TextInput::make('phone')
-                                        ->required()
-                                        ->maxLength(255),
-
-                                    TextInput::make('email')
-                                        ->required()
-                                        ->maxLength(255),
-                                ])
+                            Grid::make(2)->schema([
+                                TextInput::make('name')->required(),
+                                TextInput::make('phone')->required(),
+                                TextInput::make('email')->required(),
+                            ])
                         ]),
 
-                    Wizard\Step::make('Delivery Information')
-                        ->completedIcon('heroicon-m-hand-thumb-up')
-                        ->description('Put your correct address')
+                    Step::make('Delivery Information')
                         ->schema([
-                            Grid::make(2)
-                                ->schema([
-                                    TextInput::make('city')
-                                        ->required()
-                                        ->maxLength(255),
-
-                                    TextInput::make('post_code')
-                                        ->required()
-                                        ->maxLength(255),
-
-                                    Textarea::make('address')
-                                        ->required()
-                                        ->maxLength(255),
-                                ]),
-
-
+                            Grid::make(2)->schema([
+                                TextInput::make('city')->required(),
+                                TextInput::make('post_code')->required(),
+                                Textarea::make('address')->required(),
+                            ]),
                         ]),
 
-                    Wizard\Step::make('Payment Information')
-                        ->completedIcon('heroicon-m-hand-thumb-up')
-                        ->description('Review your payment')
+                    Step::make('Payment Information')
                         ->schema([
-                            Grid::make(3)
-                                ->schema([
-                                    TextInput::make('booking_trx_id')
-                                        ->required()
-                                        ->maxLength(255),
+                            Grid::make(3)->schema([
+                                TextInput::make('booking_trx_id')->required(),
 
-                                    ToggleButtons::make('is_paid')
-                                        ->label('Apakah sudah bayar? ')
-                                        ->boolean()
-                                        ->grouped()
-                                        ->icons([
-                                            true => 'heroicon-o-pencil',
-                                            false => 'heroicon-o-clock'
-                                        ])
-                                        ->required(),
+                                ToggleButtons::make('is_paid')
+                                    ->boolean()
+                                    ->grouped()
+                                    ->required(),
 
-                                    FileUpload::make('proof')
-                                        ->image()
-                                        ->required(),
-                                ]), 
+                                FileUpload::make('proof')
+                                    ->image()
+                                    ->required(),
+                            ]),
                         ]),
-
-
 
                 ])
                     ->columnSpanFull()
@@ -166,5 +135,39 @@ class BookingTransactionForm
                     ->skippable()
 
             ]);
+    }
+
+    public static function updateTotals(Get $get, Set $set): void
+    {
+        $selectedCosmetics = collect($get('transactionDetails'))
+            ->filter(
+                fn($item) =>
+                !empty($item['cosmetic_id']) && !empty($item['quantity'])
+            );
+
+        $cosmetics = Cosmetic::whereIn('id', $selectedCosmetics->pluck('cosmetic_id'))
+            ->get()
+            ->keyBy('id');
+
+        $subtotal = $selectedCosmetics->reduce(function ($subtotal, $item) use ($cosmetics) {
+
+            $price = $cosmetics[$item['cosmetic_id']]->price ?? 0;
+            $qty = (int) ($item['quantity'] ?? 0);
+
+            return $subtotal + ($price * $qty);
+        }, 0);
+
+        $total_tax_amount = round($subtotal * 0.11);
+        $total_amount = round($subtotal + $total_tax_amount);
+
+        $total_quantity = $selectedCosmetics->sum(
+            fn($item) =>
+            (int) ($item['quantity'] ?? 0)
+        );
+
+        $set('total_quantity', $total_quantity);
+        $set('sub_total_amount', $subtotal);
+        $set('total_tax_amount', $total_tax_amount);
+        $set('total_amount', $total_amount);
     }
 }
