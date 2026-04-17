@@ -12,7 +12,7 @@
 
 ---
 
-## 🧴 About SHAYNACOSMETIC
+## SHAYNACOSMETIC
 
 **SHAYNACOSMETIC** adalah aplikasi berbasis web yang dirancang untuk mengelola dan mengembangkan bisnis produk kosmetik secara digital. Platform ini mendukung pengelolaan produk, transaksi, serta integrasi API untuk kebutuhan frontend maupun pihak ketiga.
 
@@ -92,20 +92,6 @@ cd frontend
 npm install
 npm run dev
 ```
-
----
-
-## 🔗 API Documentation
-
-API menggunakan standar RESTful yang dapat digunakan oleh frontend maupun aplikasi lain.
-
-Endpoint utama tersedia melalui:
-
-```
-/api/*
-```
-
----
 
 ## 🛠️ Development Notes
 
